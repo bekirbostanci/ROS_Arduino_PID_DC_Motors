@@ -1,0 +1,45 @@
+{
+    "configurations": [
+        {
+            "browse": {
+                "databaseFilename": "",
+                "limitSymbolsToIncludedHeaders": true
+            },
+            "includePath": [
+                "/home/bekir/rosw/devel/include",
+                "/opt/ros/kinetic/include",
+                "/home/bekir/rosw/src/navigation-kinetic-devel/base_local_planner/include",
+                "/home/bekir/rosw/src/navigation-kinetic-devel/amcl/include",
+                "/home/bekir/rosw/src/navigation-kinetic-devel/clear_costmap_recovery/include",
+                "/home/bekir/rosw/src/navigation-kinetic-devel/costmap_2d/include",
+                "/home/bekir/rosw/src/navigation-kinetic-devel/carrot_planner/include",
+                "/home/bekir/rosw/src/navigation-kinetic-devel/dwa_local_planner/include",
+                "/home/bekir/rosw/src/navigation-kinetic-devel/global_planner/include",
+                "/home/bekir/rosw/src/ieu_agv/include",
+                "/home/bekir/rosw/src/ieu_agv/include",
+                "/home/bekir/rosw/src/ieu_agv/include",
+                "/home/bekir/rosw/src/ieu_agv/include",
+                "/home/bekir/rosw/src/navigation-kinetic-devel/map_server/include",
+                "/home/bekir/rosw/src/navigation-kinetic-devel/move_base/include",
+                "/home/bekir/rosw/src/navigation-kinetic-devel/move_slow_and_clear/include",
+                "/home/bekir/rosw/src/navigation-kinetic-devel/nav_core/include",
+                "/home/bekir/rosw/src/navigation-kinetic-devel/navfn/include",
+                "/home/bekir/rosw/src/navigation-kinetic-devel/robot_pose_ekf/include",
+                "/home/bekir/rosw/src/rosserial-jade-devel/rosserial_server/include",
+                "/home/bekir/rosw/src/rosserial-jade-devel/rosserial_test/include",
+                "/home/bekir/rosw/src/navigation-kinetic-devel/rotate_recovery/include",
+                "/home/bekir/rosw/src/turtlebot3/turtlebot3_simulations/turtlebot3_fake/include",
+                "/home/bekir/rosw/src/turtlebot3/turtlebot3_simulations/turtlebot3_gazebo/include",
+                "/home/bekir/rosw/src/turtlebot3/turtlebot3/turtlebot3_slam/include",
+                "/home/bekir/rosw/src/navigation-kinetic-devel/voxel_grid/include",
+                "/usr/include"
+            ],
+            "name": "Linux",
+            "intelliSenseMode": "gcc-x64",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}
