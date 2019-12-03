@@ -1,118 +1,109 @@
-#include <TimerOne.h>
+#include <Timer One.h>
+#include <ArduinoHardware.h>
+#include <ros.h>
+#include <geometry_msgs/Twist.h>
+#include <std_msgs/String.h>
+#include <std_msgs/Empty.h>
+
 const int IN1=24;
 const int IN2=25;
-const int ENA=6;
+const int ENL=6;
 const int IN3=28;
 const int IN4=29;
-const int ENB=7;
-
+const int ENR=7;
 
 double kp = .07;
 double ki = .01;
 double kd = .03;
  
- 
+double l_error;
+double l_lastError;
+double l_input;
+double l_out;
+double l_Setpoint;
+double l_cumError, l_rateError;
 
-double error;
-double lastError;
-double input;
-double out;
-double Setpoint;
-double cumError, rateError;
+double r_error;
+double r_lastError;
+double r_input;
+double r_out;
+double r_Setpoint;
+double r_cumError, r_rateError;
 
+volatile double r_encCount = 0;
+volatile double l_encCount = 0;
+double l_rpm=0, r_rpm=0;
+double r_w=0, l_w=0;
 
-double Merror;
-double MlastError;
-double Minput;
-double Mout;
-double MSetpoint;
-double McumError, MrateError;
+double wheel_rad = 0.0325, wheel_sep = 0.295;
+double speed_ang=0, speed_lin=0;
 
+void subsCMD( const geometry_msgs::Twist& msg){
+  speed_ang = msg.angular.z;
+  speed_lin = msg.linear.x;
+  r_w = (speed_lin/wheel_rad) + ((speed_ang*wheel_sep)/(2.0*wheel_rad));
+  l_w = (speed_lin/wheel_rad) - ((speed_ang*wheel_sep)/(2.0*wheel_rad));
+   
+}
 
-volatile double Count = 0;
-double rpm;
-
-
-volatile double MCount = 0;
-double Mrpm;
-
+ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", &subsCMD );
 
 
 void setup(){
-        
-        Setpoint = 5000;   
-        MSetpoint = 5000;   
-        pinMode(IN1, OUTPUT);
-        pinMode(IN2, OUTPUT);
-        pinMode(ENA, OUTPUT);
-        pinMode(IN4, OUTPUT);
-        pinMode(IN3, OUTPUT);
-        pinMode(ENB, OUTPUT);
+  Setpoint = 5000;   
+  MSetpoint = 5000;   
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(ENL, OUTPUT);
+  pinMode(IN4, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(ENR, OUTPUT);
       
-        pinMode(3, INPUT);
-        pinMode(2, INPUT);
-        
-        attachInterrupt(digitalPinToInterrupt(3), rightEncoderEvent, CHANGE);
-        attachInterrupt(digitalPinToInterrupt(2), leftEncoderEvent, CHANGE);
-        Timer1.initialize(100000); 
-        Timer1.attachInterrupt(isr); 
-
-        digitalWrite(30,HIGH);
-        digitalWrite(31,LOW);
-     
-        digitalWrite(24,HIGH);
-        digitalWrite(25,LOW); 
-        Serial.begin(9600);
-        //delay(500)  ;   
-        
+  pinMode(3, INPUT);
+  pinMode(2, INPUT);
+  
+  attachInterrupt(digitalPinToInterrupt(3), rightEncoderEvent, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(2), leftEncoderEvent, CHANGE);
+  Timer1.initialize(100000); 
+  Timer1.attachInterrupt(timerPID); 
+  digitalWrite(30,HIGH);
+  digitalWrite(31,LOW);
+  
+  digitalWrite(24,HIGH);
+  digitalWrite(25,LOW); 
+  Serial.begin(9600);
 }    
 
-void isr()        // interrupt service routine - tick every 0.1sec
+void timerPID()        // interrupt service routine - tick every 0.1sec
 {   
-       rpm = 60.0*(Count/64)/0.1;  //calculate motor speed, unit is rpm
-       Count=0;
-            
-        error = Setpoint - rpm; 
-        cumError += error; //* elapsedTime;                
-        rateError = (error - lastError);///elapsedTime;                                  
-        double out = kp*error + ki*cumError + kd*rateError; 
-        analogWrite(ENA,out);  
-        lastError = error;                     
+  l_rpm = 60.0*(l_encCount/64)/0.1;  //calculate motor speed, unit is rpm
+  l_encCount=0;
+  l_error = l_w - l_rpm; 
+  l_cumError += l_error; //* elapsedTime;                
+  l_rateError = (l_error - l_lastError);///elapsedTime;
+  double l_out = kp * l_error + ki * l_cumError + kd * l_rateError; 
+  analogWrite(ENL , l_out);  
+  l_lastError = l_error;                     
 
+  Serial.println(l_out); 
 
-        Serial.println(out); 
-
-        Mrpm = 60.0*(MCount/64)/0.1;  //calculate motor speed, unit is rpm
-        MCount=0;
-            
-        Merror = MSetpoint - Mrpm; 
-        McumError += Merror; //* elapsedTime;                
-        MrateError = (Merror - MlastError);///elapsedTime;                                  
-        double Mout = kp*Merror + ki*McumError + kd*MrateError; 
-        analogWrite(ENB,Mout);   
-        MlastError = Merror;          
-                                                
+  r_rpm = 60.0*(r_encCount/64)/0.1;  //calculate motor speed, unit is rpm
+  r_encCount = 0;
+  r_error = r_w - r_rpm; 
+  r_cumError += r_error; //* elapsedTime;                
+  r_rateError = (r_error - r_lastError);///elapsedTime;                                 
+  double r_out = kp * r_error + ki * r_cumError + kd * r_rateError; 
+  analogWrite(ENR , r_out);   
+  r_lastError = r_error;          
 }
-int setcounter = 0 ;
 void loop()
 {
-  /*
-    setcounter ++; 
-    if(setcounter == 300 )
-    {
-      Setpoint = Setpoint + 10; 
-      MSetpoint = MSetpoint + 10; 
-    }
-  */
   Serial.print("  ");            
-
 }
 void leftEncoderEvent() {
-Count ++ ;
+  l_encCount ++ ;
 }
 
 void rightEncoderEvent() {
-MCount ++ ;
+  r_encCount ++ ;
 }
-
-  
