@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <Wire.h>
-#include <TimerOne.h>
 #include <PID.h>
 #include <ros.h>
 #include <std_msgs/String.h>
@@ -13,41 +12,53 @@
 #include <kinematics.h>
 #include <motor.h>
 
+ros::NodeHandle nh;
+unsigned long g_prev_command_time = 0;
+
 
 
 PID motor1_pid(PWM_MIN, PWM_MAX, K_P, K_I, K_D);
 PID motor2_pid(PWM_MIN, PWM_MAX, K_P, K_I, K_D);
 
-
 controller motor1_controller(controller::MOTOR_DRIVER, MOTOR1_PWM, MOTOR1_IN_A, MOTOR1_IN_B);
 controller motor2_controller(controller::MOTOR_DRIVER, MOTOR2_PWM, MOTOR2_IN_A, MOTOR2_IN_B); 
 
-kinematics kinematic(kinematics::BASE, MAX_RPM, WHEEL_DIAMETER, 0, WHEEL_BASE);
+kinematics kinemati(kinematics::BASE, MAX_RPM, WHEEL_DIAMETER, 0, WHEEL_BASE);
 
 float g_req_linear_vel_x = 0;
 float g_req_angular_vel_z = 0;
-
 
 volatile float pos_left = 0;	//Left motor encoder position
 volatile float pos_right = 0; //Right motor encoder position
 
 
-ros::NodeHandle nh;
-unsigned long g_prev_command_time = 0;
-
 //function that will be called when receiving command from host
-void handle_cmd(const geometry_msgs::Twist &cmd_vel)
+void CMDCallBack(const geometry_msgs::Twist &cmd_vel)
 {
 	g_req_linear_vel_x = cmd_vel.linear.x; //Extract the commanded linear speed from the message
 	g_req_angular_vel_z = cmd_vel.angular.z; //Extract the commanded angular speed from the message
 	g_prev_command_time = millis();
 }
 
+void PIDCallback(const geometry_msgs::Vector3 &pid)
+{
+    //callback function every time PID constants are received from lino_pid for tuning
+    //this callback receives pid object where P,I, and D constants are stored
+    motor1_pid.updateConstants(pid.x, pid.y, pid.z);
+    motor2_pid.updateConstants(pid.x, pid.y, pid.z);
+}
+
+
+
 geometry_msgs::Pose2D pwm_output_msg;
 geometry_msgs::Pose2D encoder_msg;
-geometry_msgs::Vector3Stamped speed_msg; //create a "speed_msg" ROS message
+geometry_msgs::Vector3Stamped speed_msg;
+geometry_msgs::Vector3 moto1_pid; 
+geometry_msgs::Vector3 moto2_pid; 
 
-ros::Subscriber<geometry_msgs::Twist> cmd_vel("cmd_vel", handle_cmd); //create a subscriber to ROS topic for velocity commands (will execute "handle_cmd" function when receiving data)
+ros::Subscriber<geometry_msgs::Twist> cmd_vel("cmd_vel", CMDCallBack); //create a subscriber to ROS topic for velocity commands (will execute "handle_cmd" function when receiving data)
+ros::Subscriber<geometry_msgs::Vector3> pid_constant("pid_constant", PIDCallback); //create a subscriber to ROS topic for velocity commands (will execute "handle_cmd" function when receiving data)
+
 ros::Publisher speed_pub("speed", &speed_msg);					//create a publisher to ROS topic "speed" using the "speed_msg" type
 ros::Publisher pwm_output_pub("pwm_output", &pwm_output_msg);
 ros::Publisher encoder_pub("encoder", &encoder_msg);
@@ -95,7 +106,7 @@ void publishSpeed(float current_rpm1,float current_rpm2)
 
 void moveBase()
 {
-	kinematics::rpm req_rpm = kinematic.getRPM(g_req_linear_vel_x, 0, g_req_angular_vel_z);
+	kinematics::rpm req_rpm = kinemati.getRPM(g_req_linear_vel_x, 0, g_req_angular_vel_z);
 	int current_rpm1 = pos_left/ENCODER_PULSE;
 	int current_rpm2 = pos_right/ENCODER_PULSE;
 
@@ -105,7 +116,7 @@ void moveBase()
 
 	kinematics::velocities current_vel;
 
-     current_vel = kinematic.getVelocities(current_rpm1, current_rpm2, 0,0);
+     current_vel = kinemati.getVelocities(current_rpm1, current_rpm2, 0,0);
 	
 	publishSpeed(current_rpm1,current_rpm2);
 
@@ -131,7 +142,9 @@ void setup()
 {
 	nh.initNode();				    //init ROS node
 	nh.getHardware()->setBaud(57600); //set baud for ROS serial communication
+	//nh.getHardware()->setConnection(57600); //set baud for ROS serial communication
 	nh.subscribe(cmd_vel);		    //suscribe to ROS topic for velocity commands
+	nh.subscribe(pid_constant);		    //suscribe to ROS topic for velocity commands
 	nh.advertise(speed_pub);		    //prepare to publish speed in ROS topic
 	nh.advertise(encoder_pub);
 	nh.advertise(pwm_output_pub);
@@ -156,6 +169,7 @@ void setup()
 	{
 		nh.spinOnce();
 	}
+	
 	nh.loginfo("ROBOT CONNECTED");
 	delay(1);
 }
